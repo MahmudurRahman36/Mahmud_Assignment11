@@ -1,0 +1,101 @@
+---
+# Namespace: dev-env
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev-env
+  labels:
+    environment: development
+    part: assignment11
+
+---
+# ConfigMap in dev-env namespace
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: dev-env
+  labels:
+    app: nginx
+    environment: dev-env
+data:
+  APP_MODE: "dev"
+  APP_ENV: "development"
+  APP_VERSION: "1.0"
+
+---
+# Secret in dev-env namespace
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nginx-secret
+  namespace: dev-env
+  labels:
+    app: nginx
+    environment: dev-env
+type: Opaque
+data:
+  DB_USERNAME: YWRtaW4=
+  DB_PASSWORD: UEBzc3cwcmQxMjM=
+
+---
+# Deployment in dev-env namespace
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  namespace: dev-env
+  labels:
+    app: nginx
+    environment: dev-env
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+        tier: frontend
+        environment: dev-env
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          envFrom:
+            - configMapRef:
+                name: nginx-config
+          env:
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: nginx-secret
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nginx-secret
+                  key: DB_PASSWORD
+
+---
+# NodePort Service in dev-env namespace
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: dev-env
+  labels:
+    app: nginx
+    environment: dev-env
+spec:
+  type: NodePort
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 30008
