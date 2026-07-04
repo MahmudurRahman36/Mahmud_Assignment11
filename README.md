@@ -1,10 +1,6 @@
 # Module 11 Assignment – Kubernetes Application Deployment & Management
 
-**Submitted by:** Mahmudur Rahman
-**Cluster tool:** Minikube (docker driver) on an AWS EC2 instance (t3.medium, Ubuntu 22.04, ap-south-1 / Mumbai)
-**Kubernetes version:** v1.35.1
-
----
+Submitted by: Mahmudur Rahman
 
 ## Part 1: Conceptual Understanding
 
