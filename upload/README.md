@@ -10,20 +10,27 @@
 
 ### Q1. How does Kubernetes ensure high availability compared to traditional deployment?
 
-In traditional deployment, if a server or application crashes, it stays down until someone manually fixes it. But Kubernetes runs applications in multiple Pods across many nodes. If one Pod or node fails, Kubernetes automatically restarts or reschedules it on another healthy node. It also does load balancing and self-healing. So the application stays available all the time without human help.
-
+In a traditional deployment, we usually run the app on one or two servers, and if that server goes down, the app goes down with it, and someone has to manually restart it. Kubernetes solves this problem differently. It always tries to keep a certain number of copies (replicas) of our app running, and this number is controlled by a Deployment/ReplicaSet. If one Pod crashes or the node it was running on fails, Kubernetes notices this immediately and creates a new Pod to replace it, without any human action needed. It also spreads Pods across different nodes when possible, so a single node failure does not take down the whole app. On top of that, Kubernetes runs health checks (liveness/readiness probes) so it can detect a broken container and restart it automatically. This self-healing behaviour is the main reason Kubernetes gives much better availability than a normal single-server setup.
 
 ### Q2. Explain the relationship between Pods, ReplicaSets, and Deployments.
 
-A Pod is the smallest unit in Kubernetes that runs one or more containers. A ReplicaSet makes sure a fixed number of identical Pods are always running; if one dies, it creates a new one. A Deployment sits on top of ReplicaSet and manages it. Deployment gives us extra features like rolling updates and rollback. So the order is: Deployment controls ReplicaSet, and ReplicaSet controls Pods.
+These three are layered on top of each other. A **Pod** is the smallest unit in Kubernetes, it is basically one or more containers running together with shared network/storage. A **ReplicaSet** is the thing that makes sure a fixed number of identical Pods are running at all times, if a Pod dies, the ReplicaSet creates a new one to keep the count correct. A **Deployment** sits on top of the ReplicaSet, we normally do not create ReplicaSets by hand, we create a Deployment, and the Deployment creates and manages the ReplicaSet for us. The Deployment is also what gives us rolling updates and rollbacks, when we change the image version, the Deployment creates a new ReplicaSet and slowly shifts traffic from old Pods to new Pods. So in short: Deployment manages ReplicaSet, and ReplicaSet manages Pods.
 
 ### Q3. Why are Services required in Kubernetes?
 
-Pods are not permanent, they can die and restart, and each time they get a new IP address. So we cannot depend on Pod IPs to connect to an application. A Service gives a fixed IP and DNS name that stays the same. It also does load balancing between many Pods. This way other applications or users can always reach the Pods easily.
+Pods are not permanent, they can restart, get rescheduled to another node, or get replaced during a rolling update, and every time this happens the Pod gets a new IP address. If other parts of our app (or users outside the cluster) had to remember these changing Pod IPs, nothing would work reliably. A **Service** gives us one stable address (a ClusterIP and a DNS name) that never changes, even though the Pods behind it keep changing. The Service also does basic load balancing, it sends incoming traffic to whichever Pods currently match its label selector. Without a Service, we would have no dependable way to reach our Pods from inside or outside the cluster.
 
 ### Q4. Difference between ConfigMaps and Secrets with a practical example.
 
-ConfigMaps store normal, non-sensitive configuration data like database URL, port number, or app settings in plain text. Secrets store sensitive data like passwords, API keys, and tokens in base64 encoded form for extra safety. Example: in a database app, the host name and port go into a ConfigMap, but the database password goes into a Secret. Both keep configuration separate from the application code.
+Both are used to keep configuration values outside of our container image, so we don't have to rebuild the image every time a setting changes. The difference is what kind of data they are meant for.
+
+| | ConfigMap | Secret |
+|---|---|---|
+| Meant for | normal, non-sensitive settings | sensitive data like passwords, tokens |
+| How it is stored | plain text | base64 encoded (not real encryption by default) |
+| Example | `APP_MODE=dev` | `DB_PASSWORD=P@ssw0rd123` |
+
+In this assignment, I created a ConfigMap called `nginx-config` that stores `APP_MODE=dev`, `APP_ENV=development`, `APP_VERSION=1.0`. I also created a Secret called `nginx-secret` that stores a dummy `DB_USERNAME` and `DB_PASSWORD`. Both were injected into the same Deployment as environment variables, so the container image itself never had to contain any of this information.
 
 ---
 
